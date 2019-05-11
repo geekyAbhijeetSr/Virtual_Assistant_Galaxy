@@ -207,7 +207,7 @@ def assistant(query):
                     url = "https://www.google.com/search?q=" + str(query)
                     speak("Searching on google '" + query + "'")
                     webbrowser.get(chrome_path).open(url)
-                elif "yes" in ans or "yeah" in ans or "ya" in ans or "satisfied":
+                elif "yes" in ans or "yeah" in ans or "ya" in ans or "satisfied" in ans:
                     pass
                 else:
                     pass
