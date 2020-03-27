@@ -15,6 +15,7 @@ def speak(text):
         clear_previous_line()
         print(computer_name + ": " + text + "\n")
         os.system("mpg321 -q audio.wav")
+        os.remove('audio.wav')
 
     except KeyboardInterrupt:
         exit(0)
