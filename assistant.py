@@ -11,6 +11,7 @@ from ctypes import *
 from contextlib import contextmanager
 import pyaudio
 
+
 # ======================= for handling alsa errors =============================
 
 ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
@@ -61,6 +62,7 @@ def detected_callback():
 
 
 def my_command(check=0):
+    global count, chk
     query = ""
     r = sr.Recognizer()
     try:
@@ -68,6 +70,8 @@ def my_command(check=0):
             clear_previous_line()
             print("Microphone calibrating...")
             r.energy_threshold = 4000
+            # r.pause_threshold = 1
+            # r.adjust_for_ambient_noise(source, duration=0.7)
             clear_previous_line()
             print("Listening...")
             audio = r.listen(source)
@@ -80,13 +84,16 @@ def my_command(check=0):
         query = r.recognize_google(audio, language="en-in")
         clear_previous_line()
         print("You: " + query)
+        count = 0
+
     except sr.UnknownValueError:
-        global count, chk
+
         count += 1
-        if count == 4:
-            os.system("rm audio.wav")
+        if count == 3:
             chk = 0
             count = 0
+            clear_previous_line()
+            print()
         elif check:
             query = my_command(check=1)
         else:
@@ -152,6 +159,40 @@ def assistant(query):
             content = my_command()
             send_email("blacktorpedo121@gmail.com", content)
 
+    elif "+" in query or "-" in query or " x " in query or "X" in query or "/" in query or \
+            ("multiply" in query and "by" in query) or ("multiplied" in query and "by" in query) or \
+            ("divide" in query and "by" in query) or ("divided" in query and "by" in query):
+
+        if " x " in query:
+            query = query.replace("x", "*")
+        if "X" in query:
+            query = query.replace("X", "*")
+        if "multiply by" in query:
+            query = query.replace("multiply by", "*")
+        if "multiplied by" in query:
+            query = query.replace("multiplied by", "*")
+        if "divide by" in query:
+            query = query.replace("divide by", "/")
+        if "divided by" in query:
+            query = query.replace("divided by", "/")
+
+        word_list = query.split(" ")
+        filtered_word_list = []
+
+        if len(word_list) != 1:
+            for item in word_list:
+                if item.isnumeric() or item in ["+", "-", "/", "*"]:
+                    filtered_word_list.append(item)
+            string__ = " ".join(filtered_word_list)
+        else:
+            string__ = word_list[0]
+
+        try:
+            ans = str(eval(string__))
+            speak(ans)
+        except EOFError:
+            speak("Sorry! I didn't understand that.")
+
     elif "drop storage" in query:
         speak("Storage dropping")
         chatbot.storage.drop()
@@ -183,6 +224,11 @@ def assistant(query):
             ampm = "AM"
         speak("The current time is " + str("{:02d}".format(hr)) + ":" + str("{:02d}".format(min)) + " " + ampm)
 
+    elif "reboot" in query or "restart" in query:
+        speak("Rebooting...")
+        time.sleep(3)
+        os.system("reboot")
+
     elif "power off" in query or "shut down" in query or "shutdown" in query or "poweroff" in query:
         speak("Shutting down...")
         time.sleep(3)
@@ -194,7 +240,7 @@ def assistant(query):
 
     elif query:
         response = chatbot.get_response(query)
-        if response.confidence > 0.5:
+        if response.confidence > 0.25:
             speak(str(response))
         else:
             try:
